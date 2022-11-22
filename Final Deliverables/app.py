@@ -1,66 +1,94 @@
-from flask import Flask,render_template,request
-# Flask-It is our framework which we are going to use to run/serve our application.
-#request-for accessing file which was uploaded by the user on our application.
+import numpy as np
 import os
-import numpy as np #used for numerical analysis
-from tensorflow.keras.models import load_model#to load our trained model
+from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
-import requests
+from flask import Flask, render_template, request
 
-app = Flask(__name__,template_folder="templates") #initializing a flask app 
-# Loading the model
-model=load_model('nutrition.h5')
-print("Loaded model from disk")
+app = Flask(__name__)
 
-@ app.route('/')# route to display the home page
-def home():
-    return render_template('home.html') #rendering the home page
-
-@ app.route('/image1', methods=['GET', 'POST']) # routes to the index html
-def image1():
-    return render_template("image.html")
+model = load_model('nutrition.h5')
 
 
-@ app.route('/predict' ,methods=['GET','POST']) # route to show the predictions in a Web UI
-def lanuch():
-    if request.method=='POST':
-        f=request.files['file'] # requesting the file
-        basepath=os.path.dirname('__file__') #storing the file directory
-        filepath=os.path.join(basepath,"uploads",f.filename) #storing the file in uploads folder
-        f.save(filepath) #saving the file
-        
-        img=image.load_img(filepath,target_size=(64,64)) #load and reshaping the image
-        x=image.img_to_array(img) #converting image to an array
-        x=np.expand_dims(x,axis=0) #changing the dimensions of the image
-        
-        pred=np.argmax(model.predict(x), axis=1)
-        print("prediction",pred) #printing the prediction
-        index=['APPLE','BANANA','ORANGE','PINEAPPLE','WATERMELON']
-        
-        result=str(index[pred[0]])
-        print(result)
-        x=result
-        result=nutrition(result)
-        print(result)
-        
-        return render_template("0.html",showcase=(result),showcase1=(x))
-def nutrition(index):
-    
-    import requests
+@app.route('/')
+def index():
+    return render_template("index.html")
 
-    url = "https://calorieninjas.p.rapidapi.com/v1/nutrition"
 
-    querystring = {"query":index}
+@app.route('/predict', methods=['GET', 'POST'])
+def upload():
+    text = ""
+    if request.method == 'POST':
+        f = request.files['image']
+        basepath = os.path.dirname(__file__)
+        filepath = os.path.join(basepath, 'uploads', f.filename)
+        f.save(filepath)
+        img = image.load_img(filepath, target_size=(64, 64))
+        x = image.img_to_array(img)
+        x = np.expand_dims(x, axis=0)
+        pred = np.argmax(model.predict(x), axis=1)
+        index = ['APPLE', 'BANANA', 'ORANGE', 'PINEAPPLE', 'WATERMELON']
 
-    headers = {
-	"X-RapidAPI-Key": "226fdb7ca6mshc43f1bfd5e9705dp164933jsn6809eaf3d5e3",
-	"X-RapidAPI-Host": "calorieninjas.p.rapidapi.com"
-     }
+        if pred == 0:
+            text = """APPLE===>
+                 *Calories 96
+                 *Protein - 0.59g
+                 *Carbohydrate 25g
+                 *Fats -0.39g
+                 *Dietary Fiber 4.4g
+                 *Sugar 14 g
+                 *Sodium 18mg
+                 *Potassium 194.7mg"""
+            print(text)
 
-    response = requests.request("GET", url, headers=headers, params=querystring)
+        elif pred == 1:
+            text = """BANANA===>
+                 *Calories 105
+                 *Protein 1.39 g
+                 *carbohydrate 279g
+                 *Fats 0.49g
+                 *Dietary fibre 6.14g
+                 *Sodium 1.2 mg
+                 *Potassium 422 mg"""
+            print(text)
 
-    print(response.text)
-    return response.json()['items']
-if __name__ == "__main__":
-    # running the app
-    app.run(debug=True) 
+        elif pred == 2:
+            text = """ORANGE===>
+                    *Calories 105
+                    *Protein 0.9g
+                    *Fats 0.1g
+                    *Carbohydrate 18g
+                    *Dietary fibre 2.39
+                    *Sugar 9g
+                    *Sodium 0mg
+                    *Potassium 173.8mg"""
+            print(text)
+
+        elif pred == 3:
+            text = """PINEAPPLE===>
+                    *Calories 452
+                    *Portein-4.99g
+                    *Fats 11g
+                    *Carbohydrates -199g
+                    *Dietary Fiber 139g
+                    *Sugar 89g
+                    *Sodium 9.1 mg
+                    *Potassium 986.5mg"""
+            print(text)
+
+        elif pred == 4:
+            text = """WATERMELON===>
+                    *Calories 1371
+                    *Protein 26g
+                    *Fats-7g
+                    *Carbohydrate 341g 
+                    *Dietary Fiber 18g
+                    *Sugar 280g
+                    *Sodium 45.2 mg
+                    *Potassium  5060.2 mg"""
+            print(text)
+
+    return text
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
